@@ -1,0 +1,136 @@
+---
+title: "HW10"
+output: html_document
+date: "2024-04-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(mosaic)
+library(MatchIt)
+library(effectsize)
+library(moderndive)
+```
+
+## Question 1
+
+```{r, echo=FALSE}
+
+redline <- read.csv('redlining.csv')
+
+ggplot(redline, aes(x=policies, y=minority)) + 
+  geom_point() + 
+  geom_smooth(method='lm') #positive correlation
+
+fit1 = lm(minority~policies, data=redline)
+coef(fit1) %>% round(0) #positive
+
+confint(fit1, level=0.95) #25 and 49 higher for every
+
+redline_quart = redline %>%
+  mutate(takers_quartile = cut_number(minority, 4))
+
+ggplot(redline_quart, aes(x=policies, y=minority, color=takers_quartile)) + 
+  geom_point() +
+  geom_smooth(method='lm')
+
+fit3 = lm(policies ~ minority + fire + age + income, data=redline)
+
+coef(fit3) %>% round(1)
+
+confint(fit3, level=0.95) %>% round(1) #age had 0
+```
+The question at hand trying to be answered is whether there is an association between the number of FAIR policies and the racial composition of ZIP code while adjusting for fire, age, income variable. The approach tool that I used to answer is making a linear regression and then fitting the line and getting the confidence intervals. The results are shown through the numbers. The minority being 0.008 shows that that for 100 housing increases the policy increases by 0.008 so minority might play a factor in making it harder to obtain private insurance. The fire being 0.02 means more frequent fires in certain areas make it more likely for FAIR policies to be in place. Age also plays a role of 0.005 which higher policy which increase of housing in dependency of age. Income shows that for every 1000 increase in income the policy decreases. Maybe richer area have better access to private insurance so they don't need FAIR policy. The conclusion is that the biggest impact for FAIR policy is fire and then age and then minority and income shows that wealthier area may have a lesser need for FAIR policy. 
+
+
+## Question 2
+#### Part A
+
+```{r pressure, echo=FALSE}
+groceries <- read.csv('groceries.csv')
+
+# Part A
+average <- groceries %>% 
+  group_by(Store) %>% 
+  summarise(avg_price = mean(Price))
+
+ggplot(average) + 
+    geom_col(aes(x = Store, y = avg_price)) + coord_flip()
+```
+
+#### Part B
+```{r, echo=FALSE}
+
+# Part B
+product_counts <- groceries %>%
+  group_by(Product) %>%
+  summarise(Number_of_Stores = n())
+
+ggplot(product_counts) + 
+    geom_col(aes(x = Number_of_Stores, y = Product))
+
+```
+
+
+#### Part C
+```{r, echo=FALSE}
+model <- lm(Price ~ Type + Product, data = groceries)
+coef <- coef(model)
+interval <- confint(model)
+table <- cbind(coef, interval)
+colnames(table) <- c('Estimate', '2.5%', '97.5%')
+knitr::kable(table)
+
+```
+
+Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between 5.4461802 and 6.4011155 dollars more for the same product.
+
+#### Part D
+```{r, echo=FALSE}
+# Part D
+
+model <- lm(Price ~ Store + Product, data = groceries)
+coef <- coef(model)
+interval <- confint(model)
+table <- cbind(coef, interval)
+colnames(table) <- c('Estimate', '2.5%', '97.5%')
+knitr::kable(table)
+
+# StoreWhole Foods highest
+# StoreWalmart cheapest
+
+```
+The stores with the highest prices is Whole Foods and the store with the lowest is Walmart when comparing same prices. 
+
+### Part E
+
+Central Market charges a similar amount to HEB for the same product. The confidence interval is between -0.9216472 and -0.2251258 for the Store Central Market and the interval is -0.9451326	and -0.3467860 for H-E-B. The difference is very, very small compared to the difference of Whole Foods for example where the interval is 0.0167225	and 0.7115945 making it significant where the difference lies between Whole Foods and Central Market for example. The difference between HEB and Central Martket is 0.07 more for Central but its so small. Because of how close Central Market and H-E-B is it means that they charge about the same for similar products. 
+
+#### Part F
+
+```{r, echo=FALSE}
+
+# Part F
+
+data <- groceries %>%
+  mutate(Income10K = Income / 10000)
+
+model <- lm(Price ~ Income10K + Product, data = data)
+coef <- coef(model)
+interval <- confint(model)
+table <- cbind(coef, interval)
+colnames(table) <- c('Estimate', '2.5%', '97.5%')
+knitr::kable(table)
+
+
+get_regression_table(model, conf.level = 0.95, digits=2)
+
+
+```
+Based on the sign of the Income10K coefficient, consumers in poorer ZIP codes seem to pay more for the same product, on average because the estimate for Income10K is -0.0140897 which is a negative number. The negative estimate could means that as income increases by $10,000 in a ZIP code the average price paid for the same products decreases. So richer zip codes might be paying for more than the poorer zip codes. A one-standard deviation increase in the income of a ZIP code seems to be associated with
+a -0.03 standard-deviation change in the price that consumers in that ZIP code expect to pay for
+the same product.”
+
